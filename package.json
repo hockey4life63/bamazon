@@ -1,0 +1,25 @@
+{
+  "name": "bamazon",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "none"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hockey4life63/bamazon.git"
+  },
+  "author": "Alex",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hockey4life63/bamazon/issues"
+  },
+  "homepage": "https://github.com/hockey4life63/bamazon#readme",
+  "dependencies": {
+    "easy-table": "^1.1.0",
+    "inquirer": "^3.1.1",
+    "mysql": "^2.13.0",
+    "promise-mysql": "^3.0.1"
+  }
+}

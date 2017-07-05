@@ -21,7 +21,7 @@ const mainPage = function() {
         if (choice.page === "Customer") {
             customerView();
         } else if (choice.page === "Manager") {
-            console.log("ManagerView");
+            managerView();
         } else {
             //admin
             console.log("AdminView");
@@ -30,20 +30,159 @@ const mainPage = function() {
 
 }
 
-const customerView = function() {
-    let t = new Table;
-    connection.query('SELECT ?? FROM products', [
-        ['item_id', 'product_name', 'price', 'stock_quantity', 'sold', 'product_sales']
-    ], function(error, results, fields) {
+const managerView = function() {
+    inq.prompt([{
+        type: 'list',
+        name: 'page',
+        choices: ['View Products for Sale', 'View Low Inventory', 'Add to Inventory', 'Add New Product'],
+        message: "What page would you like to see?"
+    }]).then(function(choice) {
+        if (choice.page.includes("for Sale")) {
+            customerView(true);
+        } else if (choice.page.includes('Low')) {
+            console.log('worked so far')
+            lowInventory();
+        } else if (choice.page.includes('Add to')) {
+            addItem();
+        } else if (choice.page.includes('Add New')) {
+            newItem();
+        }
+    });
+}
+
+const newItem = function() {
+    inq.prompt([{
+        type: 'input',
+        message: "Enter Product Name:",
+        filter: function(name) {
+            return name.toLowerCase();
+        },
+        name: 'name'
+    }, {
+        type: 'list',
+        message: "Which Department?",
+        choices: ['Electonics', 'Home Goods'],
+        filter: function(department) {
+            return department.toLowerCase();
+        },
+        name: 'department'
+    }, {
+        type: 'input',
+        message: 'Enter the unit price in USD:',
+        name: 'price',
+        validate: function(price) {
+            return parseInt(price) !== NaN ? true : "must only enter numbers"
+        }
+    }, {
+        type: 'input',
+        message: 'Enter amount of stock:',
+        name: 'qty',
+        validate: function(price) {
+            return parseInt(price) !== NaN ? true : "must only enter numbers"
+        }
+    }]).then(function(product) {
+        let name = product.name;
+        let department = product.department;
+        let price = product.price;
+        let qty = product.qty;
+        connection.query('INSERT INTO products (product_name, price, stock_quantity, department_name) VALUES (?,?,?,?)', [name, price, qty, department], function(error, results, fields) {
+            if (error) {
+                console.log(error)
+            } else {
+                console.log(`Added ${qty} ${name}s to database for department ${department} at $${price}`);
+            }
+        })
+    })
+}
+
+const lowInventory = function() {
+    connection.query('SELECT * FROM products WHERE stock_quantity <= 5', function(error, results, fields) {
+        let t = new Table;
         results.forEach(function(product) {
             t.cell('Item id', product.item_id);
             t.cell("Product Name", product.product_name);
             t.cell("Price, USD", product.price, Table.number(2));
             t.cell("Stock left", product.stock_quantity)
+            t.cell("Sold", product.sold);
+            t.cell("Product Total Sales", product.product_sales);
             t.newRow();
         })
         console.log(t.toString());
-        chooseProduct(results);
+    });
+}
+const addItem = function(isNew) {
+    inq.prompt([{
+        type: "input",
+        message: "Enter Item number You Want to add",
+        name: "ID"
+    }]).then(function(item) {
+        confirmItem(item.ID)
+    })
+}
+
+const confirmItem = function(id) {
+    connection.query('SELECT product_name FROM products WHERE item_id = ?', [id], function(error, results, fields) {
+        console.log(id)
+        if (error || results.length === 0) {
+            console.log('Invaild ID try another agian')
+            addItem();
+        } else {
+            inq.prompt([{
+                type: "confirm",
+                message: `Is ${results[0].product_name} The correct item?`,
+                name: 'correct'
+            }]).then(function(ans) {
+
+                if (ans.correct === false) {
+                    addItem();
+                } else {
+                    addToInventory(id);
+                }
+            })
+        }
+    })
+}
+
+const addToInventory = function(id) {
+    inq.prompt([{
+        type: 'input',
+        message: 'How many do you want to add?',
+        name: 'qty'
+    }]).then(function(item) {
+        let qty = parseInt(item.qty)
+        if (qty > 0) {
+            connection.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE item_id = ?', [qty, id], function(error, results, fields) {
+                if (error) {
+                    console.log(error)
+                    addToInventory(id);
+                } else {
+                    console.log('Success!');
+                }
+            })
+        } else if (qty === NaN) {
+            console.log('You must only enter numbers')
+            addToInventory(id);
+        }
+    })
+}
+
+
+const customerView = function(manager) {
+    let t = new Table;
+    connection.query('SELECT * FROM products', function(error, results, fields) {
+        results.forEach(function(product) {
+            t.cell('Item id', product.item_id);
+            t.cell("Product Name", product.product_name);
+            t.cell("Price, USD", product.price, Table.number(2));
+            t.cell("Stock left", product.stock_quantity)
+            if (manager) {
+                t.cell("Sold", product.sold);
+                t.cell("Product Total Sales", product.product_sales);
+            }
+            t.newRow();
+        })
+        console.log(t.toString());
+        !manager ? chooseProduct(results) : null;
     })
 }
 

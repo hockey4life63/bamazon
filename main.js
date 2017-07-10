@@ -15,19 +15,77 @@ const mainPage = function() {
     inq.prompt([{
         type: 'list',
         name: 'page',
-        choices: ['Customer', 'Manager', 'Admin'],
+        choices: ['Customer', 'Manager', 'Admin', "Exit"],
         message: "What page would you like to see?"
     }]).then(function(choice) {
         if (choice.page === "Customer") {
             customerView();
         } else if (choice.page === "Manager") {
             managerView();
+        } else if (choice.page === "Admin") {
+            adminView();
         } else {
-            //admin
-            console.log("AdminView");
+            connection.end();
         }
     });
 
+}
+
+const adminView = function() {
+    inq.prompt([{
+            type: "list",
+            message: "What do you wanna do?",
+            choices: ["Check Department Sales", "Add New Department"],
+            name: "choice"
+
+        }
+
+    ]).then(function(option) {
+        if (option.choice.includes("Check")) {
+            console.log("check sales")
+            checkSales();
+        } else {
+            addDepartment();
+        }
+    })
+}
+
+const checkSales = function() {
+    connection.query("SELECT d.overhead_cost, d.department_name, sum(p.product_sales) as total_sales" +
+        " FROM  departments d" +
+        " LEFT join products p on d.department_name = p.department_name" +
+        " group by d.department_name",
+        function(err, results, fields) {
+            let t = new Table;
+            results.forEach(function(department) {
+                t.cell('Department Name', department.department_name);
+                t.cell("Overhead Costs", department.overhead_cost);
+                t.cell("Total_sales", department.total_sales ? department.total_sales : 0);
+                t.newRow();
+            })
+            console.log(t.toString());
+            mainPage();
+        })
+}
+
+const addDepartment = function() {
+    inq.prompt([{
+        type: "input",
+        message: "What is the department name:",
+        name: "name"
+    }, {
+        type: "input",
+        message: "Enter overhead costs:",
+        name: "cost",
+        validate: function(input) {
+            return !isNaN(parseInt(input))
+        }
+    }]).then(function(res) {
+        connection.query("INSERT INTO departments (department_name, overhead_cost) VALUES (?,?)", [res.name, res.cost], function(err, results, fields) {
+            if (err) throw err;
+            console.log("Success")
+        })
+    })
 }
 
 const managerView = function() {
@@ -71,14 +129,14 @@ const newItem = function() {
         message: 'Enter the unit price in USD:',
         name: 'price',
         validate: function(price) {
-            return parseInt(price) !== NaN ? true : "must only enter numbers"
+            return parseInt(price) !== NaN ? true : false;
         }
     }, {
         type: 'input',
         message: 'Enter amount of stock:',
         name: 'qty',
         validate: function(price) {
-            return parseInt(price) !== NaN ? true : "must only enter numbers"
+            return parseInt(price) !== NaN ? true : false;
         }
     }]).then(function(product) {
         let name = product.name;
@@ -90,6 +148,7 @@ const newItem = function() {
                 console.log(error)
             } else {
                 console.log(`Added ${qty} ${name}s to database for department ${department} at $${price}`);
+                mainPage();
             }
         })
     })
@@ -108,8 +167,10 @@ const lowInventory = function() {
             t.newRow();
         })
         console.log(t.toString());
+        mainPage();
     });
 }
+
 const addItem = function(isNew) {
     inq.prompt([{
         type: "input",
@@ -131,6 +192,7 @@ const confirmItem = function(id) {
                 type: "confirm",
                 message: `Is ${results[0].product_name} The correct item?`,
                 name: 'correct'
+
             }]).then(function(ans) {
 
                 if (ans.correct === false) {
@@ -157,6 +219,7 @@ const addToInventory = function(id) {
                     addToInventory(id);
                 } else {
                     console.log('Success!');
+                    mainPage();
                 }
             })
         } else if (qty === NaN) {
@@ -204,7 +267,7 @@ const chooseProduct = function(products) {
                 pickedProduct = val;
             }
         })
-        const totalLeft = pickedProduct.stock_quantity - parseInt(item.qty)
+        const totalLeft = pickedProduct.stock_quantity - parseInt(item.qty);
         if (exists && totalLeft >= 0) {
             buyProduct(parseInt(item.qty), pickedProduct);
         } else {
@@ -220,6 +283,7 @@ const buyProduct = function(qty, product) {
     connection.query('UPDATE products SET stock_quantity = ?, sold = ?, product_sales = ? WHERE item_id = ?', values, function(error, results, fields) {
         if (!error) {
             console.log(`Total Cost : $${cost}.`)
+            mainPage();
         } else {
             console.log(error)
         }

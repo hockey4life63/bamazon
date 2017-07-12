@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS bamazon;
 create database bamazon;
 
 use bamazon;
@@ -29,13 +30,17 @@ ALTER TABLE products
 MODIFY column department_name varchar(30);
 
 INSERT INTO products (product_name, department_name, price, stock_quantity)
-values ("Wifi Router", "electronics", "50", 15),
-	("Laptop", "electronics", 700, 4),
-    ("Candle Sticks", "home goods", 15, 10),
-    ("Dishware set", "home goods", 30, 7);
+values ("banana", "Food", 3, 100),
+	("apple", "Food", 2, 150),
+    ("sofa", "home goods", 300, 14),
+    ("dinner table", "home goods", 150, 10),
+    ("cell phone", "electronics", 400, 8),
+    ("TV", "elevtronics", 375, 10);
+    
     
 INSERT INTO departments (department_name, overhead_cost)
 values ("electronics", 14000),
-		("home goods", 9000);
+		("home goods", 9000),
+        ("food", 4000);
 
 select * from products;

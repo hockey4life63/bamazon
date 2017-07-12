@@ -84,6 +84,7 @@ const addDepartment = function() {
         connection.query("INSERT INTO departments (department_name, overhead_cost) VALUES (?,?)", [res.name, res.cost], function(err, results, fields) {
             if (err) throw err;
             console.log("Success")
+            mainPage();
         })
     })
 }
@@ -98,7 +99,6 @@ const managerView = function() {
         if (choice.page.includes("for Sale")) {
             customerView(true);
         } else if (choice.page.includes('Low')) {
-            console.log('worked so far')
             lowInventory();
         } else if (choice.page.includes('Add to')) {
             addItem();
@@ -245,7 +245,7 @@ const customerView = function(manager) {
             t.newRow();
         })
         console.log(t.toString());
-        !manager ? chooseProduct(results) : null;
+        !manager ? chooseProduct(results) : mainPage();
     })
 }
 
